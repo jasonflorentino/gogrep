@@ -91,6 +91,8 @@ run_test_match "banana" 'a+'
 run_test_match "SaaS" 'a+'
 run_test_match "caaaats" 'ca+t'
 run_test_no_match "dog" 'a+'
+run_test_match "grep!" 'g\w+p'
+run_test_match "grep!" 'g\w+[pd]'
 
 run_test_match "dogs" 'dogs?'
 run_test_match "dog" 'dogs?'

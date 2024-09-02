@@ -11,9 +11,21 @@ import (
 	"github.com/jasonflorentino/gogrep/src/pttrn"
 )
 
+const usage string = `
+jrep: A worse version of grep. Reads from stdin. Use the -E option to specify an expression.
+      echo <input> | jrep -E <pattern>
+
+      Option        Description
+      -E <pattern>  Expression to use (required)
+      --debug       Print debug information
+      --help        Display this message
+
+`
+
 type Args struct {
 	expr  string
 	debug bool
+	help  bool
 }
 
 func toArgsMap(args []string) Args {
@@ -27,6 +39,8 @@ func toArgsMap(args []string) Args {
 		case "--debug":
 			argsMap.debug = true
 			debug.DEBUG = true
+		case "--help":
+			argsMap.help = true
 		}
 		i += 1
 	}
@@ -34,23 +48,34 @@ func toArgsMap(args []string) Args {
 	return argsMap
 }
 
-// 1 means no lines were selected, >1 means error
 func bail(msg string) {
 	fmt.Fprintf(os.Stderr, "error: %s\n", msg)
 	os.Exit(2)
 }
 
-// Usage: echo <input_text> | your_program.sh -E <pattern>
+// echo 'hello' | go run src/main.go -- -E 'hell'
+//
+// Exit Codes:
+//
+//	0 - Successful match
+//	1 - No match found
+//	2 - Error
 func main() {
 	if len(os.Args) < 3 {
-		bail("usage: mygrep -E <pattern>")
+		fmt.Print(usage)
+		bail("Missing args")
 	}
 
 	args := toArgsMap(os.Args[1:])
 
-	pattern := args.expr
-	if pattern == "" {
-		bail("usage: mygrep -E <pattern>")
+	if args.help {
+		fmt.Print(usage)
+		os.Exit(0)
+	}
+
+	if args.expr == "" {
+		fmt.Print(usage)
+		bail("No expression.")
 	}
 
 	line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
@@ -63,7 +88,7 @@ func main() {
 		bail(fmt.Sprintf("read input text: %v", err))
 	}
 
-	ok, err := matchLine(line, pattern)
+	ok, err := matchLine(line, args.expr)
 	if err != nil {
 		bail(err.Error())
 	}
@@ -97,17 +122,21 @@ func rMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
 	return false
 }
 
-// rPatternMatch recursively matches a pattern against the line
-// The first return val tells the caller whether or not a match was
-// found. And if it wasn't the second return val says whether or not
-// to continue trying to match.
+// rPatternMatch recursively matches a pattern against the line.
+// Recurses by contnually slicing the head of `line`, and testing it
+// against the Pattern Char at `patIdx`. It does this until there are no
+// more `line` characters left to match, or end of the Pattern is reached.
+//
+// The first return val tells the caller whether or not a match was found.
+// And if it wasn't the second return val says whether to continue with
+// trying to match or to stop because a match is no longer possible.
 func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patIdx int) (bool, bool) {
 	log := debug.LogPrefix("  rPatternMatch")
 	debug.Log("\n")
 	log(fmt.Sprintf("patIdx: %d", patIdx))
 	log(fmt.Sprintf("line: %v, len:%d", line, len(line)))
 	log(fmt.Sprintf("pattern: %s, len:%d", pattern.ToString(), len(*pattern)))
-	// Check then get the next pattern char
+
 	if len(*pattern) == patIdx {
 		// We've reach the end without failing
 		return true, true
@@ -116,43 +145,63 @@ func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patId
 	pChar = (*pattern)[patIdx]
 	log(fmt.Sprintf("pChar: %v", pChar))
 
-	// Check then get the next line char
 	if len(line) == 0 {
-		// Only a match if the next pattern char is
+		// Only a match if the next pattern char if
 		// the End or if we're allowed zero of the previous char
 		return pChar.PType == pttrn.End || pChar.PType == pttrn.ZeroOrOne, true
 	}
 
 	switch pChar.PType {
+
 	case pttrn.Start:
 		isMatching, _ := rPatternMatch(line, pattern, patIdx+1)
 		return isMatching, true
+
 	case pttrn.OneOrMore:
 		match := strings.Contains(pChar.Values, line[0])
-		log(fmt.Sprintf("match: %v", match))
-		if (match && !pChar.Exclude) || (!match && pChar.Exclude) {
-			pChar.Occurrences++
-			isMatching, halt := rPatternMatch(line[1:], pattern, patIdx)
-			return isMatching, halt
-		} else {
-			if pChar.Occurrences == 0 {
+		log(fmt.Sprintf("match: %v, occurrences: %d", match, pChar.Occurrences))
+		if pChar.Occurrences == 0 {
+			if pChar.XMatch(match) {
+				pChar.Occurrences++
+				isMatching, halt := rPatternMatch(line[1:], pattern, patIdx)
+				return isMatching, halt
+			} else {
 				return false, false
 			}
-			isMatching, halt := rPatternMatch(line[0:], pattern, patIdx+1)
-			return isMatching, halt
+		} else {
+			if patIdx+2 <= len(*pattern) {
+				nextCharPattern := (*pattern)[patIdx+1 : patIdx+2]
+				nextCharMatch, _ := rPatternMatch(line[0:], &nextCharPattern, 0)
+				if nextCharMatch {
+					// OK do the rest of it
+					isMatching, halt := rPatternMatch(line[0:], pattern, patIdx+1)
+					return isMatching, halt
+				}
+			}
+			if pChar.XMatch(match) {
+				pChar.Occurrences++
+				isMatching, halt := rPatternMatch(line[1:], pattern, patIdx)
+				return isMatching, halt
+			} else {
+				isMatching, halt := rPatternMatch(line[1:], pattern, patIdx+1)
+				return isMatching, halt
+			}
 		}
+
 	case pttrn.Wildcard:
 		isMatching, halt := rPatternMatch(line[1:], pattern, patIdx+1)
 		return isMatching, halt
+
 	case pttrn.Literal:
 		match := strings.Contains(pChar.Values, line[0])
 		log(fmt.Sprintf("match: %v", match))
-		if (match && !pChar.Exclude) || (!match && pChar.Exclude) {
+		if pChar.XMatch(match) {
 			isMatching, halt := rPatternMatch(line[1:], pattern, patIdx+1)
 			return isMatching, halt
 		} else {
 			return false, false
 		}
+
 	case pttrn.Group:
 		isMatching, halt := false, false
 		matchLen := 0
@@ -175,6 +224,7 @@ func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patId
 			return false, false
 		}
 		return isMatching, halt
+
 	case pttrn.BackRef:
 		if pChar.References.Matched == nil {
 			bail(fmt.Sprintf("Backref expected a matched pattern.\n\n"))
@@ -182,10 +232,11 @@ func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patId
 		isMatching, halt := rPatternMatch(line[0:], pChar.References.Matched, 0)
 		log(fmt.Sprintf("isMatching: %v, halt: %v", isMatching, halt))
 		return isMatching, halt
+
 	case pttrn.ZeroOrOne:
 		match := strings.Contains(pChar.Values, line[0])
 		log(fmt.Sprintf("match: %v", match))
-		if (match && !pChar.Exclude) || (!match && pChar.Exclude) {
+		if pChar.XMatch(match) {
 			pChar.Occurrences++
 			isMatching, halt := rPatternMatch(line[1:], pattern, patIdx+1)
 			return isMatching, halt
@@ -193,6 +244,7 @@ func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patId
 			isMatching, halt := rPatternMatch(line[0:], pattern, patIdx+1)
 			return isMatching, halt
 		}
+
 	default:
 		bail(fmt.Sprintf("matching for type %v is not implemented", pChar.PType))
 	}
