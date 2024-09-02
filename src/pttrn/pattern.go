@@ -103,13 +103,14 @@ func BuildPattern(pattern idxablstr.IndexableString) (*Pattern, error) {
 				pChar.References = group
 			}
 		case `[`:
+		captureBracket:
 			for offset := 1; offset < len(pattern)-i; offset++ {
 				nextChar := pattern[i+offset]
 				log(fmt.Sprintf("[ offset: %d, nextChar: %v, pattern len: %d", offset, nextChar, len(pattern)))
 				switch nextChar {
 				case "]":
 					i += offset
-					break
+					break captureBracket
 				case "^":
 					if pChar.Values == "" {
 						pChar.Exclude = true
@@ -133,14 +134,14 @@ func BuildPattern(pattern idxablstr.IndexableString) (*Pattern, error) {
 			// Recursively build up strings
 			// to call buildPattern on and push each
 			// built pattern into the top-level pattern alternates
-		capture:
+		captureGroup:
 			for offset := 1; offset < len(pattern)-i; offset++ {
 				nextChar := pattern[i+offset]
 				log(fmt.Sprintf("( offset: %d, nextChar: %v, pattern len: %d", offset, nextChar, len(pattern)))
 				switch nextChar {
 				case `)`:
 					i += offset
-					break capture
+					break captureGroup
 				case `|`:
 					if pStr == "" && len(pStrs) == 0 {
 						return nil, errors.New(fmt.Sprintf("no pattern before alternation"))

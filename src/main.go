@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +24,7 @@ jrep: A worse version of grep. Reads from stdin. Use the -E option to specify an
 
 `
 
-// echo 'hello' | go run src/main.go -- -E 'hell'
+// echo 'hello' | go run src/main.go -E 'hell'
 //
 // Exit Codes:
 //
@@ -58,39 +59,54 @@ func main() {
 
 	// Get input
 
-	var lines [][]byte
+	var matched bool
 
 	if lib.ARGS.FileName == "" {
+		lib.Log("Reading from Stdin")
 		line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
-		if line[len(line)-1] == 10 {
-			lib.Log("Stripping new line")
-			line = line[:len(line)-1]
-		}
+		line = withoutNewLine(line)
 		lib.Log(fmt.Sprintf("line: %s", line))
 		if err != nil {
 			bail(fmt.Sprintf("read input text: %v", err))
 		}
-		lines = append(lines, line)
-	} else {
-		// handle reading file
-	}
-
-	// Match
-
-	var matched bool
-
-	for _, line := range lines {
 		match := matchLine(idxablstr.FromBytes(line), pattern)
 		if match {
 			matched = true
 		}
+	} else {
+		lib.Log("Reading from file")
+		file, err := os.Open(lib.ARGS.FileName)
+		if err != nil {
+			bail(err.Error())
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := withoutNewLine(scanner.Bytes())
+			match := matchLine(idxablstr.FromBytes(line), pattern)
+			if match {
+				matched = true
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			bail(err.Error())
+		}
 	}
+
+	// Match
 
 	if !matched {
 		os.Exit(1)
 	}
 
 	os.Exit(0)
+}
+
+func withoutNewLine(line []byte) []byte {
+	if line[len(line)-1] == 10 {
+		line = line[:len(line)-1]
+	}
+	return line
 }
 
 func bail(msg string) {
