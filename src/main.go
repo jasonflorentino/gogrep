@@ -115,6 +115,7 @@ func bail(msg string) {
 
 func matchLine(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
 	log := lib.LogPrefix("matchLine")
+	pattern.Reset()
 	for i := range line {
 		isMatching, halt := rPatternMatch(line[i:], pattern, 0)
 		log(fmt.Sprintf("isMatching: %v, halt: %v", isMatching, halt))
