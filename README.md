@@ -19,6 +19,26 @@ In this challenge you'll build your own implementation of `grep`. Along the way
 we'll learn about Regex syntax, how parsers/lexers work, and how regular
 expressions are evaluated.
 
+## Update: Sept 2, 2024
+Sure, to finish the challenge we just had to implement some RegEx and say when there wasn't a match with stdin. But now it actually works like `grep`! The program can read in a file and write matching lines to stdout. I haven't updated `test.sh` with relevant test cases but feel free to try it yourself:
+- Make a test file:
+  ```
+  touch testing
+  echo cats and dogs >> testing
+  echo cats and dogo >> testing
+  echo dogs and cats >> testing
+  echo dogs and cata >> testing
+  ```
+- Run the program:
+  ```
+  echo testing:
+  cat testing
+  echo "\nmatches:"
+  go run src/main.go -E '[tg](a|s) and \w\w[tg]\1' testing
+  rm testing
+  ```
+- You should see only 2 of the 4 lines printed as matches. (The ones with correct spellings for "dogs" and "cats" since the backreference `\1` will fail when neither the `o` nor `a` matches the previously matched `s` for that line.)
+
 # Usage
 
 - Run the program using `go run`:
