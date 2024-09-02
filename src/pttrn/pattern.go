@@ -40,6 +40,12 @@ func (p *Pattern) GroupNumber(num int) *PatternChar {
 	return nil
 }
 
+func (p *Pattern) Reset() {
+	for _, pc := range *p {
+		pc.Reset()
+	}
+}
+
 func BuildPattern(pattern idxablstr.IndexableString) (*Pattern, error) {
 	log := lib.LogPrefix("buildPattern")
 	patternChars := Pattern{}

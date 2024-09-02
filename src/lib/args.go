@@ -5,9 +5,10 @@ import "fmt"
 var ARGS *Args
 
 type Args struct {
-	Expr  string
-	Debug bool
-	Help  bool
+	Expr   string
+	Debug  bool
+	Help   bool
+	Silent bool
 }
 
 func AssignArgs(args []string) {
@@ -23,6 +24,8 @@ func AssignArgs(args []string) {
 			ARGS.Debug = true
 		case "--help":
 			ARGS.Help = true
+		case "--silent":
+			ARGS.Silent = true
 		}
 		i += 1
 	}

@@ -3,13 +3,24 @@ package pttrn
 import "fmt"
 
 type PatternChar struct {
-	PType       PatternType
-	Values      string
-	Exclude     bool
-	References  *PatternChar
+	// please don't mutate once pattern is built
+	PType      PatternType
+	Values     string
+	Exclude    bool
+	References *PatternChar
+	Alternates []*Pattern
+	// mutable
 	Occurrences int
-	Alternates  []*Pattern
 	Matched     *Pattern
+}
+
+func (p *PatternChar) Reset() {
+	if p.Occurrences > 0 {
+		p.Occurrences = 0
+	}
+	if p.Matched != nil {
+		p.Matched = nil
+	}
 }
 
 func (p *PatternChar) String() string {

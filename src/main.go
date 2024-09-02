@@ -19,6 +19,7 @@ jrep: A worse version of grep. Reads from stdin. Use the -E option to specify an
       -E <pattern>  Expression to use (required)
       --debug       Print debug information
       --help        Display this message
+      --silent      Don't output matching lines
 
 `
 
@@ -88,7 +89,10 @@ func matchLine(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
 	for i := range line {
 		isMatching, halt := rPatternMatch(line[i:], pattern, 0)
 		log(fmt.Sprintf("isMatching: %v, halt: %v", isMatching, halt))
-		if halt || isMatching {
+		if halt {
+			if isMatching && !lib.ARGS.Silent {
+				fmt.Fprintln(os.Stdout, line.String())
+			}
 			return isMatching
 		}
 	}

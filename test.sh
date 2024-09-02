@@ -34,7 +34,7 @@ function run_test_match {
     TOTAL+=1
     echo ""
     echo "'$1' should match '$2'"
-    echo "$1" | $TMP_DIR/main -E "$2" && {
+    echo "$1" | $TMP_DIR/main --silent -E "$2" && {
         green "    Passed"
         PASSED+=1
     } || {
@@ -48,7 +48,7 @@ function run_test_no_match {
     TOTAL+=1
     echo ""
     echo "'$1' should not match '$2'"
-    echo "$1" | $TMP_DIR/main -E "$2" && {
+    echo "$1" | $TMP_DIR/main --silent -E "$2" && {
         red "    Failed"
         echo "    Debug: echo '$1' | go run src/main.go -- --debug -E '$2'"
         FAILED+=1

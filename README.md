@@ -29,7 +29,7 @@ expressions are evaluated.
   ```
   echo caaaats | go run src/main.go
   ```
-- Specify a pattern to match against with the `-E` flag:
+- Specify a pattern to match against with the `-E` option:
   ```
   echo caaaats | go run src/main.go -E ca+t
   ```
