@@ -5,10 +5,11 @@ import "fmt"
 var ARGS *Args
 
 type Args struct {
-	Expr   string
-	Debug  bool
-	Help   bool
-	Silent bool
+	Expr     string
+	Debug    bool
+	Help     bool
+	Silent   bool
+	FileName string
 }
 
 func AssignArgs(args []string) {
@@ -26,6 +27,8 @@ func AssignArgs(args []string) {
 			ARGS.Help = true
 		case "--silent":
 			ARGS.Silent = true
+		default:
+			ARGS.FileName = v
 		}
 		i += 1
 	}

@@ -48,18 +48,6 @@ func main() {
 		bail("No expression.")
 	}
 
-	// Get input
-
-	line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
-	if line[len(line)-1] == 10 {
-		lib.Log("Stripping new line")
-		line = line[:len(line)-1]
-	}
-	lib.Log(fmt.Sprintf("line: %s", line))
-	if err != nil {
-		bail(fmt.Sprintf("read input text: %v", err))
-	}
-
 	// Build pattern
 
 	pattern, err := pttrn.BuildPattern(idxablstr.FromString(lib.ARGS.Expr))
@@ -68,11 +56,37 @@ func main() {
 		bail(err.Error())
 	}
 
+	// Get input
+
+	var lines [][]byte
+
+	if lib.ARGS.FileName == "" {
+		line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
+		if line[len(line)-1] == 10 {
+			lib.Log("Stripping new line")
+			line = line[:len(line)-1]
+		}
+		lib.Log(fmt.Sprintf("line: %s", line))
+		if err != nil {
+			bail(fmt.Sprintf("read input text: %v", err))
+		}
+		lines = append(lines, line)
+	} else {
+		// handle reading file
+	}
+
 	// Match
 
-	ok := matchLine(idxablstr.FromBytes(line), pattern)
+	var matched bool
 
-	if !ok {
+	for _, line := range lines {
+		match := matchLine(idxablstr.FromBytes(line), pattern)
+		if match {
+			matched = true
+		}
+	}
+
+	if !matched {
 		os.Exit(1)
 	}
 
