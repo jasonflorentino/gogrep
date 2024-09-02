@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jasonflorentino/gogrep/src/debug"
 	"github.com/jasonflorentino/gogrep/src/idxablstr"
+	"github.com/jasonflorentino/gogrep/src/lib"
 	"github.com/jasonflorentino/gogrep/src/pttrn"
 )
 
@@ -22,37 +22,6 @@ jrep: A worse version of grep. Reads from stdin. Use the -E option to specify an
 
 `
 
-type Args struct {
-	expr  string
-	debug bool
-	help  bool
-}
-
-func toArgsMap(args []string) Args {
-	argsMap := Args{}
-	for i := 0; i < len(args); {
-		v := args[i]
-		switch v {
-		case "-E":
-			argsMap.expr = args[i+1]
-			i += 1
-		case "--debug":
-			argsMap.debug = true
-			debug.DEBUG = true
-		case "--help":
-			argsMap.help = true
-		}
-		i += 1
-	}
-	debug.Log(fmt.Sprintf("%v", argsMap))
-	return argsMap
-}
-
-func bail(msg string) {
-	fmt.Fprintf(os.Stderr, "error: %s\n", msg)
-	os.Exit(2)
-}
-
 // echo 'hello' | go run src/main.go -- -E 'hell'
 //
 // Exit Codes:
@@ -66,52 +35,56 @@ func main() {
 		bail("Missing args")
 	}
 
-	args := toArgsMap(os.Args[1:])
+	lib.AssignArgs(os.Args[1:])
 
-	if args.help {
+	if lib.ARGS.Help {
 		fmt.Print(usage)
 		os.Exit(0)
 	}
 
-	if args.expr == "" {
+	if lib.ARGS.Expr == "" {
 		fmt.Print(usage)
 		bail("No expression.")
 	}
 
+	// Get input
+
 	line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
 	if line[len(line)-1] == 10 {
-		debug.Log("Stripping new line")
+		lib.Log("Stripping new line")
 		line = line[:len(line)-1]
 	}
-	debug.Log(fmt.Sprintf("line: %s", line))
+	lib.Log(fmt.Sprintf("line: %s", line))
 	if err != nil {
 		bail(fmt.Sprintf("read input text: %v", err))
 	}
 
-	ok, err := matchLine(line, args.expr)
+	// Build pattern
+
+	pattern, err := pttrn.BuildPattern(idxablstr.FromString(lib.ARGS.Expr))
+	lib.Log(fmt.Sprintf("pattern: %v", pattern))
 	if err != nil {
 		bail(err.Error())
 	}
+
+	// Match
+
+	ok := matchLine(idxablstr.FromBytes(line), pattern)
 
 	if !ok {
 		os.Exit(1)
 	}
 
-	// default exit code is 0 which means success
 	os.Exit(0)
 }
 
-func matchLine(line []byte, pattern string) (bool, error) {
-	patternChars, err := pttrn.BuildPattern(idxablstr.FromString(pattern))
-	if err != nil {
-		bail(err.Error())
-	}
-	debug.Log(fmt.Sprintf("patternChars: %v", patternChars))
-	return rMatch(idxablstr.FromBytes(line), patternChars), nil
+func bail(msg string) {
+	fmt.Fprintf(os.Stderr, "error: %s\n", msg)
+	os.Exit(2)
 }
 
-func rMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
-	log := debug.LogPrefix("rMatch")
+func matchLine(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
+	log := lib.LogPrefix("matchLine")
 	for i := range line {
 		isMatching, halt := rPatternMatch(line[i:], pattern, 0)
 		log(fmt.Sprintf("isMatching: %v, halt: %v", isMatching, halt))
@@ -131,8 +104,8 @@ func rMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern) bool {
 // And if it wasn't the second return val says whether to continue with
 // trying to match or to stop because a match is no longer possible.
 func rPatternMatch(line idxablstr.IndexableString, pattern *pttrn.Pattern, patIdx int) (bool, bool) {
-	log := debug.LogPrefix("  rPatternMatch")
-	debug.Log("\n")
+	log := lib.LogPrefix("  rPatternMatch")
+	lib.Log("\n")
 	log(fmt.Sprintf("patIdx: %d", patIdx))
 	log(fmt.Sprintf("line: %v, len:%d", line, len(line)))
 	log(fmt.Sprintf("pattern: %s, len:%d", pattern.ToString(), len(*pattern)))

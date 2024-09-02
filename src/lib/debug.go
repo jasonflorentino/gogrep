@@ -1,11 +1,9 @@
-package debug
+package lib
 
 import "fmt"
 
-var DEBUG bool = false
-
 func Log(msg string) {
-	if DEBUG {
+	if ARGS.Debug {
 		fmt.Println(msg)
 	}
 }

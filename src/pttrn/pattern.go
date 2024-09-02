@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jasonflorentino/gogrep/src/debug"
 	"github.com/jasonflorentino/gogrep/src/idxablstr"
+	"github.com/jasonflorentino/gogrep/src/lib"
 )
 
 var (
@@ -41,7 +41,7 @@ func (p *Pattern) GroupNumber(num int) *PatternChar {
 }
 
 func BuildPattern(pattern idxablstr.IndexableString) (*Pattern, error) {
-	log := debug.LogPrefix("buildPattern")
+	log := lib.LogPrefix("buildPattern")
 	patternChars := Pattern{}
 	var prevChar string
 	for i := 0; i < len(pattern); i++ {
