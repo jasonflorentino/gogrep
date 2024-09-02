@@ -1,6 +1,6 @@
 # GoGrep
 
-This repo contains the program I wrote for the *["Build Your Own grep" Challenge](https://app.codecrafters.io/courses/grep/overview)*. on [codecrafters.io](https://codecrafters.io). I've been really enjoying both CodeCrafters and writing Go, so as yet another month has come to pass and they're again offering a free challenge, how can I say no? (here's a [link](https://github.com/jasonflorentino/go-http-server) to last month's)
+This repo contains the program I wrote for the *["Build Your Own grep" Challenge](https://app.codecrafters.io/courses/grep/overview)* on [codecrafters.io](https://codecrafters.io). I've been really enjoying both CodeCrafters and writing Go, so as yet another month has come to pass and they're again offering a free challenge, how can I say no? (here's a [link](https://github.com/jasonflorentino/go-http-server) to last month's)
 
 And yet.
 

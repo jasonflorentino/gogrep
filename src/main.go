@@ -57,13 +57,14 @@ func main() {
 		bail(err.Error())
 	}
 
-	// Get input
-
+	// Used for our exit code at the end
 	var matched bool
+
+	// Match from stdin or lines from a file
 
 	if lib.ARGS.FileName == "" {
 		lib.Log("Reading from Stdin")
-		line, err := io.ReadAll(os.Stdin) // assume we're only dealing with a single line
+		line, err := io.ReadAll(os.Stdin)
 		line = withoutNewLine(line)
 		lib.Log(fmt.Sprintf("line: %s", line))
 		if err != nil {
@@ -92,8 +93,6 @@ func main() {
 			bail(err.Error())
 		}
 	}
-
-	// Match
 
 	if !matched {
 		os.Exit(1)
