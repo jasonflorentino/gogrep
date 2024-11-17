@@ -67,7 +67,7 @@ Sure, to finish the challenge we just had to implement some RegEx and say when t
 - Matches the start of a string with `^`
 - Matches the end of a string with `$`
 - Matches one or more times with `+`
-- Matches zero or more times with `?`
+- Matches zero or one times with `?`
 - Supports alternation with `|` like in `(cat|dog)`
 - Supports backreferences with `\1` like in `super(man|woman) and bat\1`
 - Is otherwise very limited and buggy (probably)
